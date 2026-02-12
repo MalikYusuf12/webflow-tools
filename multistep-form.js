@@ -123,11 +123,11 @@
   "use strict";
 
   /* ───── jQuery guard ───── */
-  if (typeof $ === "undefined" && typeof jQuery === "undefined") {
+  if (typeof window.jQuery === "undefined" && typeof window.$ === "undefined") {
     console.error("[Multistep] jQuery is required.");
     return;
   }
-  const $ = window.jQuery || window.$;
+  var $ = window.jQuery || window.$;
 
   /* ============================================================
    *  STATE
@@ -1485,6 +1485,31 @@
   // ─── LIVE INPUT VALIDATION ───
   formWrapper.find(":input").on("input", function () {
     validation();
+  });
+
+  // ─── FINSWEET CUSTOM SELECT COMPATIBILITY ───
+  // Finsweet custom selects update the native <select> but may not fire change.
+  // Listen for clicks on the dropdown links and trigger change after a short delay.
+  $(document).on("click", ".fs_selectcustom-1_link, [fs-selectcustom-element] .w-dropdown-link", function () {
+    setTimeout(function () {
+      formWrapper.find("select").each(function () {
+        if ($(this).val() !== "") {
+          resetInputErrorMessage($(this).attr("name"));
+        }
+      });
+      validation();
+    }, 100);
+  });
+
+  // Also observe native select mutations for any third-party select libs
+  formWrapper.find("select").each(function () {
+    var sel = this;
+    if (typeof MutationObserver !== "undefined") {
+      var obs = new MutationObserver(function () {
+        $(sel).trigger("change");
+      });
+      obs.observe(sel, { childList: true, attributes: true, subtree: true });
+    }
   });
 
   // ─── ANSWER CARD CLICKS ───
